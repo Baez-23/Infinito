@@ -19,13 +19,17 @@
   resize();
   window.addEventListener("resize", resize);
 
-  const FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const CURSIVE_FONT = '"Dancing Script", "Brush Script MT", cursive';
+  const COUNT_FONT = 'Georgia, "Times New Roman", serif';
+  const FOV = 440;
 
-  const STAR_COUNT = 1450;
+  const STAR_COUNT = 2400;
   const stars = [];
 
   for (let i = 0; i < STAR_COUNT; i++) {
     const isPurple = Math.random() < 0.28;
+    const isForeground2D = i < 1350;
+    const z = 120 + Math.random() * 3400;
     stars.push({
       x: Math.random() * w,
       y: Math.random() * h,
@@ -33,33 +37,35 @@
       vy: (Math.random() - 0.5) * 0.22,
       tx: null,
       ty: null,
-      size: 0.85 + Math.random() * 1.45,
+      size: 0.8 + Math.random() * 1.45,
       alpha: 0,
-      targetAlpha: 0.45 + Math.random() * 0.55,
+      targetAlpha: isForeground2D ? 0.5 + Math.random() * 0.5 : 0,
       phase: Math.random() * Math.PI * 2,
       color: isPurple
         ? Math.random() < 0.5
           ? [216, 180, 254]
           : [192, 132, 252]
         : [255, 255, 255],
-      wx: (Math.random() - 0.5) * 5200,
-      wy: (Math.random() - 0.5) * 4200,
-      wz: 120 + Math.random() * 3400,
+      wx: (Math.random() - 0.5) * 5600,
+      wy: (Math.random() - 0.5) * 4400,
+      wz: z,
       inText: false,
+      is2D: isForeground2D,
     });
   }
 
   let activeTextState = {
     lines: [],
-    fontSize: 32,
-    weight: 500,
+    fontSize: 38,
+    weight: 600,
+    fontFamily: CURSIVE_FONT,
     opacity: 0,
     flash: 0,
     createdAt: 0,
     active: false,
   };
 
-  function sampleTextPoints(lines, fontSize, weight, step) {
+  function sampleTextPoints(lines, fontSize, weight, fontFamily, step) {
     const off = document.createElement("canvas");
     off.width = w;
     off.height = h;
@@ -68,9 +74,9 @@
     octx.fillStyle = "#ffffff";
     octx.textAlign = "center";
     octx.textBaseline = "middle";
-    octx.font = `${weight} ${fontSize}px ${FONT_FAMILY}`;
+    octx.font = `${weight} ${fontSize}px ${fontFamily}`;
 
-    const lineHeight = fontSize * 1.42;
+    const lineHeight = fontSize * 1.38;
     const totalHeight = lines.length * lineHeight;
     const startY = h / 2 - totalHeight / 2 + lineHeight / 2;
 
@@ -83,7 +89,7 @@
 
     for (let y = 0; y < h; y += step) {
       for (let x = 0; x < w; x += step) {
-        if (data[(y * w + x) * 4 + 3] > 128) {
+        if (data[(y * w + x) * 4 + 3] > 120) {
           points.push({ x, y });
         }
       }
@@ -97,9 +103,9 @@
     return points;
   }
 
-  function setMorphText(lines, fontSize, weight, step, now) {
-    const points = sampleTextPoints(lines, fontSize, weight, step);
-    const usable = Math.min(points.length, stars.length - 300);
+  function setMorphText(lines, fontSize, weight, fontFamily, step, now) {
+    const points = sampleTextPoints(lines, fontSize, weight, fontFamily, step);
+    const usable = Math.min(points.length, 950);
 
     for (let i = 0; i < stars.length; i++) {
       if (i < usable) {
@@ -116,6 +122,7 @@
     activeTextState.lines = lines;
     activeTextState.fontSize = fontSize;
     activeTextState.weight = weight;
+    activeTextState.fontFamily = fontFamily;
     activeTextState.active = true;
     activeTextState.opacity = 0;
     activeTextState.flash = 0;
@@ -161,9 +168,9 @@
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `${activeTextState.weight} ${activeTextState.fontSize}px ${FONT_FAMILY}`;
+    ctx.font = `${activeTextState.weight} ${activeTextState.fontSize}px ${activeTextState.fontFamily}`;
 
-    const lineHeight = activeTextState.fontSize * 1.42;
+    const lineHeight = activeTextState.fontSize * 1.38;
     const totalHeight = activeTextState.lines.length * lineHeight;
     const startY = h / 2 - totalHeight / 2 + lineHeight / 2;
 
@@ -180,8 +187,8 @@
     }
 
     if (activeTextState.opacity > 0.004) {
-      ctx.shadowColor = `rgba(192, 132, 252, ${(0.55 * activeTextState.opacity).toFixed(3)})`;
-      ctx.shadowBlur = 14;
+      ctx.shadowColor = `rgba(192, 132, 252, ${(0.58 * activeTextState.opacity).toFixed(3)})`;
+      ctx.shadowBlur = 15;
       ctx.fillStyle = `rgba(255, 255, 255, ${activeTextState.opacity.toFixed(3)})`;
 
       activeTextState.lines.forEach((line, idx) => {
@@ -374,25 +381,25 @@
 
   function createNebula(z, camX, camY) {
     const colors = [
-      "rgba(147, 51, 234, 0.2)",
-      "rgba(109, 40, 217, 0.18)",
-      "rgba(192, 132, 252, 0.15)",
-      "rgba(79, 70, 229, 0.16)",
+      "rgba(147, 51, 234, 0.22)",
+      "rgba(109, 40, 217, 0.2)",
+      "rgba(192, 132, 252, 0.16)",
+      "rgba(79, 70, 229, 0.18)",
     ];
     return {
       type: "nebula",
       wx: camX + (Math.random() - 0.5) * 2600,
       wy: camY + (Math.random() - 0.5) * 2000,
       wz: z,
-      radius: 280 + Math.random() * 220,
+      radius: 300 + Math.random() * 240,
       color: colors[Math.floor(Math.random() * colors.length)],
     };
   }
 
   function initCosmicField(camX, camY) {
     cosmicObjects.length = 0;
-    for (let i = 0; i < 34; i++) {
-      const z = 180 + i * 130;
+    for (let i = 0; i < 36; i++) {
+      const z = 220 + i * 120;
       const mod = i % 5;
       if (mod === 0) cosmicObjects.push(createNebula(z, camX, camY));
       else if (mod === 1 || mod === 3) cosmicObjects.push(createPlanet(z, camX, camY));
@@ -407,7 +414,7 @@
     obj.wy = camY + (Math.random() - 0.5) * 2000;
   }
 
-  function drawCosmicObject(obj, camX, camY, camYaw, camPitch, camRoll, fov, dim) {
+  function drawCosmicObject(obj, camX, camY, camYaw, camPitch, camRoll, dim) {
     let dx = obj.wx - camX;
     let dy = obj.wy - camY;
     let dz = obj.wz;
@@ -424,7 +431,7 @@
 
     if (z2 <= 40) return;
 
-    const scale = fov / z2;
+    const scale = FOV / z2;
     const cosR = Math.cos(camRoll);
     const sinR = Math.sin(camRoll);
     const rx = x1 * cosR - y2 * sinR;
@@ -578,49 +585,51 @@
     currentStage = stage;
 
     const isMobile = w < 600;
-    const phraseFont = isMobile ? Math.max(22, w * 0.062) : Math.max(34, w * 0.032);
+    const phraseFont = isMobile ? Math.max(29, w * 0.082) : Math.max(46, w * 0.042);
     const step = isMobile ? 4 : 5;
-    const countFont = isMobile ? Math.min(w * 0.32, 145) : Math.min(h * 0.26, 180);
+    const countFont = isMobile ? Math.min(w * 0.34, 155) : Math.min(h * 0.28, 190);
 
     if (stage === 1) {
       const lines = isMobile
         ? ["¿Quieres saber", "cuánto he de amarte?..."]
         : ["¿Quieres saber cuánto he de amarte?..."];
-      setMorphText(lines, phraseFont, 500, step, now);
+      setMorphText(lines, phraseFont, 600, CURSIVE_FONT, step, now);
     } else if (stage === 2) {
       releaseText(1.15);
     } else if (stage === 3) {
-      setMorphText(["...Solo espera"], phraseFont, 500, step, now);
+      setMorphText(["...Solo espera"], phraseFont * 1.08, 600, CURSIVE_FONT, step, now);
     } else if (stage === 4) {
       releaseText(1.15);
     } else if (stage === 5) {
-      setMorphText(["3"], countFont, 600, step, now);
+      setMorphText(["3"], countFont, 400, COUNT_FONT, step, now);
     } else if (stage === 6) {
       releaseText(1.0);
     } else if (stage === 7) {
-      setMorphText(["2"], countFont, 600, step, now);
+      setMorphText(["2"], countFont, 400, COUNT_FONT, step, now);
     } else if (stage === 8) {
       releaseText(1.0);
     } else if (stage === 9) {
-      setMorphText(["1"], countFont, 600, step, now);
+      setMorphText(["1"], countFont, 400, COUNT_FONT, step, now);
       initCosmicField(0, 0);
     } else if (stage === 10) {
-      releaseText(1.2);
-      const fov = 440;
+      releaseText(0.45);
       for (let i = 0; i < stars.length; i++) {
-        const z = i < 700 ? 280 + Math.random() * 1300 : 120 + Math.random() * 3200;
-        const scale = fov / z;
-        stars[i].wz = z;
-        if (i < 700) {
-          stars[i].wx = (stars[i].x - w / 2) / scale;
-          stars[i].wy = (stars[i].y - h / 2) / scale;
+        if (stars[i].is2D) {
+          const z = 450 + Math.random() * 1400;
+          const factor = z / FOV;
+          stars[i].wz = z;
+          stars[i].wx = (stars[i].x - w / 2) * factor;
+          stars[i].wy = (stars[i].y - h / 2) * factor;
+          stars[i].alpha = Math.max(0.55, stars[i].alpha);
         } else {
-          stars[i].wx = (Math.random() - 0.5) * 5200;
-          stars[i].wy = (Math.random() - 0.5) * 4200;
+          stars[i].wz = 1600 + Math.random() * 2000;
+          stars[i].wx = (Math.random() - 0.5) * 5600;
+          stars[i].wy = (Math.random() - 0.5) * 4400;
+          stars[i].alpha = 0.35 + Math.random() * 0.5;
         }
       }
     } else if (stage === 11) {
-      const finalFont = isMobile ? Math.max(20, w * 0.052) : Math.max(30, w * 0.028);
+      const finalFont = isMobile ? Math.max(25, w * 0.068) : Math.max(38, w * 0.036);
       const finalLines = isMobile
         ? [
             "Te amo más allá",
@@ -636,7 +645,7 @@
             "Porque poca es la infinita eternidad",
             "para adorarte....",
           ];
-      setMorphText(finalLines, finalFont, 500, step, now);
+      setMorphText(finalLines, finalFont, 600, CURSIVE_FONT, step, now);
     }
   }
 
@@ -665,31 +674,31 @@
     const isFinalText = currentStage === 11;
 
     if (currentStage === 9) {
-      cosmosFade = Math.min(0.32, cosmosFade + 0.0025);
+      cosmosFade = Math.min(0.42, cosmosFade + 0.0028);
     } else if (isJourney) {
-      const targetFade = isFinalText ? 0.35 : 0.96;
-      cosmosFade += (targetFade - cosmosFade) * 0.018;
+      const targetFade = isFinalText ? 0.38 : 0.96;
+      cosmosFade += (targetFade - cosmosFade) * 0.015;
     }
 
     ctx.fillStyle = isJourney
       ? isFinalText
-        ? "rgba(2, 1, 8, 0.42)"
-        : "rgba(2, 1, 8, 0.3)"
-      : "rgba(2, 1, 8, 0.35)";
+        ? "rgba(4, 1, 14, 0.38)"
+        : "rgba(4, 1, 14, 0.28)"
+      : "rgba(3, 1, 10, 0.34)";
     ctx.fillRect(0, 0, w, h);
 
     if (cosmosFade > 0.005 && cosmicObjects.length > 0) {
       const journeyTime = Math.max(0, elapsed - 39.5);
+      const easeStart = Math.min(1, journeyTime / 5.5);
       const camX = isJourney
-        ? Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260
+        ? (Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260) * easeStart
         : 0;
       const camY = isJourney
-        ? Math.cos(journeyTime * 0.11) * 420 + Math.sin(journeyTime * 0.09) * 210
+        ? (Math.cos(journeyTime * 0.11) * 420 + Math.sin(journeyTime * 0.09) * 210) * easeStart
         : 0;
-      const camYaw = isJourney ? Math.sin(journeyTime * 0.12) * 0.28 : 0;
-      const camPitch = isJourney ? Math.cos(journeyTime * 0.1) * 0.2 : 0;
-      const camRoll = isJourney ? Math.sin(journeyTime * 0.08) * 0.32 : 0;
-      const fov = 440;
+      const camYaw = isJourney ? Math.sin(journeyTime * 0.12) * 0.28 * easeStart : 0;
+      const camPitch = isJourney ? Math.cos(journeyTime * 0.1) * 0.2 * easeStart : 0;
+      const camRoll = isJourney ? Math.sin(journeyTime * 0.08) * 0.32 * easeStart : 0;
 
       cosmicObjects.sort((a, b) => b.wz - a.wz);
       for (let i = 0; i < cosmicObjects.length; i++) {
@@ -700,15 +709,17 @@
             respawnCosmicObject(obj, camX, camY);
           }
         }
-        drawCosmicObject(obj, camX, camY, camYaw, camPitch, camRoll, fov, cosmosFade);
+        drawCosmicObject(obj, camX, camY, camYaw, camPitch, camRoll, cosmosFade);
       }
     }
 
-    updateAndDrawShootingStars(isJourney ? (isFinalText ? 0.014 : 0.024) : 0.014);
+    updateAndDrawShootingStars(isJourney ? (isFinalText ? 0.014 : 0.025) : 0.014);
 
     if (!isJourney) {
       for (let i = 0; i < stars.length; i++) {
         const s = stars[i];
+        if (!s.is2D) continue;
+
         if (s.alpha < s.targetAlpha) {
           s.alpha = Math.min(s.targetAlpha, s.alpha + 0.005);
         }
@@ -728,7 +739,7 @@
           if (s.y > h) s.y -= h;
         }
 
-        const twinkle = 0.72 + 0.28 * Math.sin(now * 0.0025 + s.phase);
+        const twinkle = 0.74 + 0.26 * Math.sin(now * 0.0025 + s.phase);
         const condenseFade = s.inText
           ? Math.max(0.18, 1 - activeTextState.opacity * 0.78)
           : 1;
@@ -743,15 +754,15 @@
       }
     } else {
       const journeyTime = elapsed - 39.5;
+      const easeStart = Math.min(1, journeyTime / 5.5);
       const targetSpeed = isFinalText ? 4.2 : 8.5;
-      travelSpeed += (targetSpeed - travelSpeed) * 0.014;
+      travelSpeed += (targetSpeed - travelSpeed) * 0.0085;
 
-      const camX = Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260;
-      const camY = Math.cos(journeyTime * 0.11) * 420 + Math.sin(journeyTime * 0.09) * 210;
-      const camYaw = Math.sin(journeyTime * 0.12) * 0.28;
-      const camPitch = Math.cos(journeyTime * 0.1) * 0.2;
-      const camRoll = Math.sin(journeyTime * 0.08) * 0.32;
-      const fov = 440;
+      const camX = (Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260) * easeStart;
+      const camY = (Math.cos(journeyTime * 0.11) * 420 + Math.sin(journeyTime * 0.09) * 210) * easeStart;
+      const camYaw = Math.sin(journeyTime * 0.12) * 0.28 * easeStart;
+      const camPitch = Math.cos(journeyTime * 0.1) * 0.2 * easeStart;
+      const camRoll = Math.sin(journeyTime * 0.08) * 0.32 * easeStart;
 
       const cosY = Math.cos(camYaw);
       const sinY = Math.sin(camYaw);
@@ -780,9 +791,10 @@
           s.wz -= travelSpeed * (0.75 + (i % 5) * 0.14);
 
           if (s.wz <= 20) {
-            s.wz = 3400;
-            s.wx = camX + (Math.random() - 0.5) * 5200;
-            s.wy = camY + (Math.random() - 0.5) * 4200;
+            s.wz = 3500;
+            s.wx = camX + (Math.random() - 0.5) * 5600;
+            s.wy = camY + (Math.random() - 0.5) * 4400;
+            s.alpha = 0.75 + Math.random() * 0.25;
             continue;
           }
 
@@ -797,7 +809,7 @@
 
           if (z2 <= 20) continue;
 
-          const scaleNow = fov / z2;
+          const scaleNow = FOV / z2;
           const rx = x1 * cosR - y2 * sinR;
           const ry = x1 * sinR + y2 * cosR;
 
@@ -809,11 +821,11 @@
 
           if (sx < -80 || sx > w + 80 || sy < -80 || sy > h + 80) continue;
 
-          const depthAlpha =
-            Math.min(1, (3400 - s.wz) / 800) * (isFinalText ? 0.5 : 0.95);
-          const radius = Math.min(3.2, Math.max(0.65, s.size * scaleNow * 0.7));
+          const distanceFade = Math.min(1, (3600 - s.wz) / 450);
+          const finalAlpha = Math.max(0.35, s.alpha) * distanceFade * (isFinalText ? 0.55 : 0.96);
+          const radius = Math.min(3.1, Math.max(0.75, s.size * scaleNow * 0.72));
 
-          ctx.fillStyle = `rgba(${s.color[0]}, ${s.color[1]}, ${s.color[2]}, ${depthAlpha.toFixed(3)})`;
+          ctx.fillStyle = `rgba(${s.color[0]}, ${s.color[1]}, ${s.color[2]}, ${finalAlpha.toFixed(3)})`;
           ctx.beginPath();
           ctx.arc(sx, sy, radius, 0, Math.PI * 2);
           ctx.fill();
