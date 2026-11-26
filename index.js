@@ -21,7 +21,7 @@
 
   const FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
-  const STAR_COUNT = 1350;
+  const STAR_COUNT = 1450;
   const stars = [];
 
   for (let i = 0; i < STAR_COUNT; i++) {
@@ -29,11 +29,11 @@
     stars.push({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
+      vx: (Math.random() - 0.5) * 0.22,
+      vy: (Math.random() - 0.5) * 0.22,
       tx: null,
       ty: null,
-      size: 0.8 + Math.random() * 1.5,
+      size: 0.85 + Math.random() * 1.45,
       alpha: 0,
       targetAlpha: 0.45 + Math.random() * 0.55,
       phase: Math.random() * Math.PI * 2,
@@ -44,7 +44,7 @@
         : [255, 255, 255],
       wx: (Math.random() - 0.5) * 5200,
       wy: (Math.random() - 0.5) * 4200,
-      wz: 80 + Math.random() * 3400,
+      wz: 120 + Math.random() * 3400,
       inText: false,
     });
   }
@@ -54,7 +54,9 @@
     fontSize: 32,
     weight: 500,
     opacity: 0,
-    targetOpacity: 0,
+    flash: 0,
+    createdAt: 0,
+    active: false,
   };
 
   function sampleTextPoints(lines, fontSize, weight, step) {
@@ -95,9 +97,9 @@
     return points;
   }
 
-  function setCrispText(lines, fontSize, weight, step) {
+  function setMorphText(lines, fontSize, weight, step, now, keepProgress) {
     const points = sampleTextPoints(lines, fontSize, weight, step);
-    const usable = Math.min(points.length, stars.length - 250);
+    const usable = Math.min(points.length, stars.length - 300);
 
     for (let i = 0; i < stars.length; i++) {
       if (i < usable) {
@@ -114,11 +116,16 @@
     activeTextState.lines = lines;
     activeTextState.fontSize = fontSize;
     activeTextState.weight = weight;
-    activeTextState.targetOpacity = 1;
+    activeTextState.active = true;
+    if (!keepProgress) {
+      activeTextState.opacity = 0;
+      activeTextState.flash = 0;
+      activeTextState.createdAt = now;
+    }
   }
 
   function releaseText(scatterSpeed) {
-    activeTextState.targetOpacity = 0;
+    activeTextState.active = false;
     for (let i = 0; i < stars.length; i++) {
       if (stars[i].inText) {
         const angle = Math.random() * Math.PI * 2;
@@ -132,8 +139,26 @@
     }
   }
 
-  function drawCrispTextLayer() {
-    if (activeTextState.opacity <= 0.005 || activeTextState.lines.length === 0) return;
+  function updateAndDrawCrispText(now) {
+    if (activeTextState.active) {
+      const age = (now - activeTextState.createdAt) / 1000;
+
+      if (age > 1.35 && age < 2.9) {
+        const progress = (age - 1.35) / 1.55;
+        activeTextState.flash = Math.sin(progress * Math.PI);
+      } else {
+        activeTextState.flash *= 0.9;
+      }
+
+      if (age > 1.65) {
+        activeTextState.opacity = Math.min(1, activeTextState.opacity + 0.014);
+      }
+    } else {
+      activeTextState.opacity = Math.max(0, activeTextState.opacity - 0.022);
+      activeTextState.flash *= 0.88;
+    }
+
+    if (activeTextState.opacity <= 0.004 && activeTextState.flash <= 0.004) return;
 
     ctx.save();
     ctx.textAlign = "center";
@@ -144,15 +169,29 @@
     const totalHeight = activeTextState.lines.length * lineHeight;
     const startY = h / 2 - totalHeight / 2 + lineHeight / 2;
 
-    ctx.shadowColor = `rgba(192, 132, 252, ${(0.65 * activeTextState.opacity).toFixed(3)})`;
-    ctx.shadowBlur = 16;
-    ctx.fillStyle = `rgba(255, 255, 255, ${activeTextState.opacity.toFixed(3)})`;
+    if (activeTextState.flash > 0.01) {
+      ctx.shadowColor = `rgba(233, 213, 255, ${(0.95 * activeTextState.flash).toFixed(3)})`;
+      ctx.shadowBlur = 28 * activeTextState.flash;
+      ctx.fillStyle = `rgba(243, 232, 255, ${(0.48 * activeTextState.flash).toFixed(3)})`;
 
-    activeTextState.lines.forEach((line, idx) => {
-      if (line !== "") {
-        ctx.fillText(line, w / 2, startY + idx * lineHeight);
-      }
-    });
+      activeTextState.lines.forEach((line, idx) => {
+        if (line !== "") {
+          ctx.fillText(line, w / 2, startY + idx * lineHeight);
+        }
+      });
+    }
+
+    if (activeTextState.opacity > 0.004) {
+      ctx.shadowColor = `rgba(192, 132, 252, ${(0.55 * activeTextState.opacity).toFixed(3)})`;
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = `rgba(255, 255, 255, ${activeTextState.opacity.toFixed(3)})`;
+
+      activeTextState.lines.forEach((line, idx) => {
+        if (line !== "") {
+          ctx.fillText(line, w / 2, startY + idx * lineHeight);
+        }
+      });
+    }
 
     ctx.restore();
   }
@@ -160,7 +199,7 @@
   const shootingStars = [];
 
   function spawnShootingStar() {
-    const bright = Math.random() > 0.6;
+    const bright = Math.random() > 0.58;
     const startX = Math.random() * w;
     const startY = Math.random() * h * 0.65;
     const angle = Math.PI * (0.15 + Math.random() * 0.25);
@@ -337,25 +376,25 @@
 
   function createNebula(z, camX, camY) {
     const colors = [
-      "rgba(147, 51, 234, 0.18)",
-      "rgba(109, 40, 217, 0.16)",
-      "rgba(192, 132, 252, 0.14)",
-      "rgba(79, 70, 229, 0.15)",
+      "rgba(147, 51, 234, 0.2)",
+      "rgba(109, 40, 217, 0.18)",
+      "rgba(192, 132, 252, 0.15)",
+      "rgba(79, 70, 229, 0.16)",
     ];
     return {
       type: "nebula",
-      wx: camX + (Math.random() - 0.5) * 2800,
-      wy: camY + (Math.random() - 0.5) * 2200,
+      wx: camX + (Math.random() - 0.5) * 2600,
+      wy: camY + (Math.random() - 0.5) * 2000,
       wz: z,
-      radius: 260 + Math.random() * 220,
+      radius: 280 + Math.random() * 220,
       color: colors[Math.floor(Math.random() * colors.length)],
     };
   }
 
   function initCosmicField(camX, camY) {
     cosmicObjects.length = 0;
-    for (let i = 0; i < 28; i++) {
-      const z = 700 + i * 160;
+    for (let i = 0; i < 32; i++) {
+      const z = 260 + i * 135;
       const mod = i % 5;
       if (mod === 0) cosmicObjects.push(createNebula(z, camX, camY));
       else if (mod === 1 || mod === 3) cosmicObjects.push(createPlanet(z, camX, camY));
@@ -365,7 +404,7 @@
   }
 
   function respawnCosmicObject(obj, camX, camY) {
-    obj.wz = 4400 + Math.random() * 700;
+    obj.wz = 4300 + Math.random() * 600;
     obj.wx = camX + (Math.random() - 0.5) * 2600;
     obj.wy = camY + (Math.random() - 0.5) * 2000;
   }
@@ -398,7 +437,7 @@
 
     if (sx < -450 || sx > w + 450 || sy < -450 || sy > h + 450) return;
 
-    const fadeIn = Math.min(1, (4400 - obj.wz) / 1100);
+    const fadeIn = Math.min(1, (4300 - obj.wz) / 950);
     const fadeOut = Math.min(1, z2 / 220);
     const alpha = Math.max(0, fadeIn * fadeOut * dim);
     if (alpha <= 0.01) return;
@@ -534,8 +573,9 @@
   let startTime = 0;
   let currentStage = -1;
   let travelSpeed = 0;
+  let cosmosFade = 0;
 
-  function triggerStage(stage) {
+  function triggerStage(stage, now) {
     if (currentStage === stage) return;
     currentStage = stage;
 
@@ -548,35 +588,40 @@
       const lines = isMobile
         ? ["¿Quieres saber", "cuánto he de amarte?..."]
         : ["¿Quieres saber cuánto he de amarte?..."];
-      setCrispText(lines, phraseFont, 500, step);
+      setMorphText(lines, phraseFont, 500, step, now, false);
     } else if (stage === 2) {
       const lines = isMobile
         ? ["¿Quieres saber", "cuánto he de amarte?...", "", "Solo espera"]
         : ["¿Quieres saber cuánto he de amarte?...", "", "Solo espera"];
-      setCrispText(lines, phraseFont, 500, step);
+      setMorphText(lines, phraseFont, 500, step, now, true);
     } else if (stage === 3) {
-      releaseText(1.4);
+      releaseText(1.1);
     } else if (stage === 4) {
-      setCrispText(["3"], countFont, 600, step);
+      setMorphText(["3"], countFont, 600, step, now, false);
     } else if (stage === 5) {
-      releaseText(1.3);
+      releaseText(1.0);
     } else if (stage === 6) {
-      setCrispText(["2"], countFont, 600, step);
+      setMorphText(["2"], countFont, 600, step, now, false);
     } else if (stage === 7) {
-      releaseText(1.3);
+      releaseText(1.0);
     } else if (stage === 8) {
-      setCrispText(["1"], countFont, 600, step);
+      setMorphText(["1"], countFont, 600, step, now, false);
+      initCosmicField(0, 0);
     } else if (stage === 9) {
-      releaseText(1.6);
+      releaseText(1.2);
       const fov = 440;
       for (let i = 0; i < stars.length; i++) {
-        const z = 220 + Math.random() * 3200;
+        const z = i < 650 ? 340 + Math.random() * 1400 : 120 + Math.random() * 3200;
         const scale = fov / z;
         stars[i].wz = z;
-        stars[i].wx = (stars[i].x - w / 2) / scale + (Math.random() - 0.5) * 900;
-        stars[i].wy = (stars[i].y - h / 2) / scale + (Math.random() - 0.5) * 900;
+        if (i < 650) {
+          stars[i].wx = (stars[i].x - w / 2) / scale;
+          stars[i].wy = (stars[i].y - h / 2) / scale;
+        } else {
+          stars[i].wx = (Math.random() - 0.5) * 5200;
+          stars[i].wy = (Math.random() - 0.5) * 4200;
+        }
       }
-      initCosmicField(0, 0);
     } else if (stage === 10) {
       const finalFont = isMobile ? Math.max(20, w * 0.052) : Math.max(30, w * 0.028);
       const finalLines = isMobile
@@ -594,7 +639,7 @@
             "Porque poca es la infinita eternidad",
             "para adorarte....",
           ];
-      setCrispText(finalLines, finalFont, 500, step);
+      setMorphText(finalLines, finalFont, 500, step, now, false);
     }
   }
 
@@ -606,30 +651,64 @@
 
     const elapsed = (now - startTime) / 1000;
 
-    if (elapsed < 4.5) triggerStage(0);
-    else if (elapsed < 10.5) triggerStage(1);
-    else if (elapsed < 17.5) triggerStage(2);
-    else if (elapsed < 20.5) triggerStage(3);
-    else if (elapsed < 23.8) triggerStage(4);
-    else if (elapsed < 26.0) triggerStage(5);
-    else if (elapsed < 29.3) triggerStage(6);
-    else if (elapsed < 31.5) triggerStage(7);
-    else if (elapsed < 34.8) triggerStage(8);
-    else if (elapsed < 125.0) triggerStage(9);
-    else triggerStage(10);
-
-    activeTextState.opacity +=
-      (activeTextState.targetOpacity - activeTextState.opacity) * 0.032;
+    if (elapsed < 4.5) triggerStage(0, now);
+    else if (elapsed < 11.2) triggerStage(1, now);
+    else if (elapsed < 18.5) triggerStage(2, now);
+    else if (elapsed < 21.5) triggerStage(3, now);
+    else if (elapsed < 25.5) triggerStage(4, now);
+    else if (elapsed < 27.5) triggerStage(5, now);
+    else if (elapsed < 31.5) triggerStage(6, now);
+    else if (elapsed < 33.5) triggerStage(7, now);
+    else if (elapsed < 37.5) triggerStage(8, now);
+    else if (elapsed < 127.5) triggerStage(9, now);
+    else triggerStage(10, now);
 
     const isJourney = currentStage >= 9;
     const isFinalText = currentStage === 10;
 
+    if (currentStage === 8) {
+      cosmosFade = Math.min(0.28, cosmosFade + 0.002);
+    } else if (isJourney) {
+      const targetFade = isFinalText ? 0.35 : 0.96;
+      cosmosFade += (targetFade - cosmosFade) * 0.015;
+    }
+
+    ctx.fillStyle = isJourney
+      ? isFinalText
+        ? "rgba(2, 1, 8, 0.42)"
+        : "rgba(2, 1, 8, 0.3)"
+      : "rgba(2, 1, 8, 0.35)";
+    ctx.fillRect(0, 0, w, h);
+
+    if (cosmosFade > 0.005 && cosmicObjects.length > 0) {
+      const journeyTime = Math.max(0, elapsed - 37.5);
+      const camX = isJourney
+        ? Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260
+        : 0;
+      const camY = isJourney
+        ? Math.cos(journeyTime * 0.11) * 420 + Math.sin(journeyTime * 0.09) * 210
+        : 0;
+      const camYaw = isJourney ? Math.sin(journeyTime * 0.12) * 0.28 : 0;
+      const camPitch = isJourney ? Math.cos(journeyTime * 0.1) * 0.2 : 0;
+      const camRoll = isJourney ? Math.sin(journeyTime * 0.08) * 0.32 : 0;
+      const fov = 440;
+
+      cosmicObjects.sort((a, b) => b.wz - a.wz);
+      for (let i = 0; i < cosmicObjects.length; i++) {
+        const obj = cosmicObjects[i];
+        if (isJourney) {
+          obj.wz -= travelSpeed * 0.9;
+          if (obj.wz < 60) {
+            respawnCosmicObject(obj, camX, camY);
+          }
+        }
+        drawCosmicObject(obj, camX, camY, camYaw, camPitch, camRoll, fov, cosmosFade);
+      }
+    }
+
+    updateAndDrawShootingStars(isJourney ? (isFinalText ? 0.014 : 0.024) : 0.014);
+
     if (!isJourney) {
-      ctx.fillStyle = "rgba(2, 1, 8, 0.34)";
-      ctx.fillRect(0, 0, w, h);
-
-      updateAndDrawShootingStars(0.012);
-
       for (let i = 0; i < stars.length; i++) {
         const s = stars[i];
         if (s.alpha < s.targetAlpha) {
@@ -637,8 +716,8 @@
         }
 
         if (s.tx !== null && s.ty !== null) {
-          s.x += (s.tx - s.x) * 0.032;
-          s.y += (s.ty - s.y) * 0.032;
+          s.x += (s.tx - s.x) * 0.036;
+          s.y += (s.ty - s.y) * 0.036;
         } else {
           s.x += s.vx;
           s.y += s.vy;
@@ -652,26 +731,22 @@
         }
 
         const twinkle = 0.72 + 0.28 * Math.sin(now * 0.0025 + s.phase);
-        const condenseFade = s.inText ? Math.max(0.25, 1 - activeTextState.opacity * 0.72) : 1;
-        const alpha = (s.inText ? 0.9 : s.alpha) * twinkle * condenseFade;
-        const radius = s.inText ? Math.max(0.9, s.size * 0.75) : s.size;
+        const condenseFade = s.inText
+          ? Math.max(0.18, 1 - activeTextState.opacity * 0.78)
+          : 1;
+        const boost = s.inText ? 1 + activeTextState.flash * 0.65 : 1;
+        const alpha = Math.min(1, (s.inText ? 0.92 : s.alpha) * twinkle * condenseFade * boost);
+        const radius = s.inText ? Math.max(0.95, s.size * 0.78) * boost : s.size;
 
         ctx.fillStyle = `rgba(${s.color[0]}, ${s.color[1]}, ${s.color[2]}, ${alpha.toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      drawCrispTextLayer();
     } else {
-      const journeyTime = elapsed - 34.8;
+      const journeyTime = elapsed - 37.5;
       const targetSpeed = isFinalText ? 4.2 : 8.5;
-      travelSpeed += (targetSpeed - travelSpeed) * 0.012;
-
-      ctx.fillStyle = isFinalText
-        ? "rgba(2, 1, 8, 0.42)"
-        : "rgba(2, 1, 8, 0.28)";
-      ctx.fillRect(0, 0, w, h);
+      travelSpeed += (targetSpeed - travelSpeed) * 0.01;
 
       const camX = Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260;
       const camY = Math.cos(journeyTime * 0.11) * 420 + Math.sin(journeyTime * 0.09) * 210;
@@ -679,19 +754,6 @@
       const camPitch = Math.cos(journeyTime * 0.1) * 0.2;
       const camRoll = Math.sin(journeyTime * 0.08) * 0.32;
       const fov = 440;
-      const dimObjects = isFinalText ? 0.32 : 0.95;
-
-      updateAndDrawShootingStars(isFinalText ? 0.014 : 0.022);
-
-      cosmicObjects.sort((a, b) => b.wz - a.wz);
-      for (let i = 0; i < cosmicObjects.length; i++) {
-        const obj = cosmicObjects[i];
-        obj.wz -= travelSpeed * 0.9;
-        if (obj.wz < 60) {
-          respawnCosmicObject(obj, camX, camY);
-        }
-        drawCosmicObject(obj, camX, camY, camYaw, camPitch, camRoll, fov, dimObjects);
-      }
 
       const cosY = Math.cos(camYaw);
       const sinY = Math.sin(camYaw);
@@ -704,14 +766,15 @@
         const s = stars[i];
 
         if (isFinalText && s.inText && s.tx !== null && s.ty !== null) {
-          s.x += (s.tx - s.x) * 0.028;
-          s.y += (s.ty - s.y) * 0.028;
+          s.x += (s.tx - s.x) * 0.032;
+          s.y += (s.ty - s.y) * 0.032;
 
           const twinkle = 0.78 + 0.22 * Math.sin(now * 0.002 + s.phase);
-          const condenseFade = Math.max(0.22, 1 - activeTextState.opacity * 0.75);
-          const r = Math.max(0.95, s.size * 0.75);
+          const condenseFade = Math.max(0.18, 1 - activeTextState.opacity * 0.78);
+          const boost = 1 + activeTextState.flash * 0.65;
+          const r = Math.max(0.95, s.size * 0.78) * boost;
 
-          ctx.fillStyle = `rgba(233, 213, 255, ${(0.88 * twinkle * condenseFade).toFixed(3)})`;
+          ctx.fillStyle = `rgba(233, 213, 255, ${Math.min(1, 0.9 * twinkle * condenseFade * boost).toFixed(3)})`;
           ctx.beginPath();
           ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
           ctx.fill();
@@ -758,12 +821,9 @@
           ctx.fill();
         }
       }
-
-      if (isFinalText) {
-        drawCrispTextLayer();
-      }
     }
 
+    updateAndDrawCrispText(now);
     requestAnimationFrame(render);
   }
 
