@@ -23,15 +23,24 @@
   const COUNT_FONT = 'Georgia, "Times New Roman", serif';
   const FOV = 460;
 
-  const STAR_COUNT = 2200;
+  const STAR_PALETTES = [
+    [255, 255, 255],
+    [255, 255, 255],
+    [233, 213, 255],
+    [192, 132, 252],
+    [199, 210, 254],
+    [254, 243, 199],
+  ];
+
+  const STAR_COUNT = 2600;
   const stars = [];
 
   for (let i = 0; i < STAR_COUNT; i++) {
-    const isPurple = Math.random() < 0.28;
     const wz = 140 + Math.random() * 3400;
-    const wx = (Math.random() - 0.5) * 6200;
-    const wy = (Math.random() - 0.5) * 4800;
+    const wx = (Math.random() - 0.5) * 6400;
+    const wy = (Math.random() - 0.5) * 5000;
     const scale = FOV / wz;
+    const hasSpikes = i % 38 === 0;
 
     stars.push({
       wx,
@@ -41,17 +50,15 @@
       y: h / 2 + wy * scale,
       tx: null,
       ty: null,
-      driftVx: (Math.random() - 0.5) * 0.18,
-      driftVy: (Math.random() - 0.5) * 0.18,
-      size: 0.75 + Math.random() * 1.4,
+      driftVx: (Math.random() - 0.5) * 0.16,
+      driftVy: (Math.random() - 0.5) * 0.16,
+      size: hasSpikes ? 1.5 + Math.random() * 1.1 : 0.7 + Math.random() * 1.35,
       alpha: 0,
-      targetAlpha: 0.45 + Math.random() * 0.55,
+      targetAlpha: 0.5 + Math.random() * 0.5,
       phase: Math.random() * Math.PI * 2,
-      color: isPurple
-        ? Math.random() < 0.5
-          ? [216, 180, 254]
-          : [192, 132, 252]
-        : [255, 255, 255],
+      color: STAR_PALETTES[i % STAR_PALETTES.length],
+      hasSpikes,
+      spikeSix: i % 76 === 0,
       inText: false,
       morphBlend: 0,
     });
@@ -108,7 +115,7 @@
 
   function setMorphText(lines, fontSize, weight, fontFamily, step, now) {
     const points = sampleTextPoints(lines, fontSize, weight, fontFamily, step);
-    const usable = Math.min(points.length, 900);
+    const usable = Math.min(points.length, 920);
 
     for (let i = 0; i < stars.length; i++) {
       if (i < usable) {
@@ -216,8 +223,8 @@
     }
 
     if (activeTextState.opacity > 0.004) {
-      ctx.shadowColor = `rgba(192, 132, 252, ${(0.58 * activeTextState.opacity).toFixed(3)})`;
-      ctx.shadowBlur = 15;
+      ctx.shadowColor = `rgba(192, 132, 252, ${(0.62 * activeTextState.opacity).toFixed(3)})`;
+      ctx.shadowBlur = 16;
       ctx.fillStyle = `rgba(255, 255, 255, ${activeTextState.opacity.toFixed(3)})`;
 
       activeTextState.lines.forEach((line, idx) => {
@@ -230,10 +237,45 @@
     ctx.restore();
   }
 
+  function drawDiffractionStar(x, y, radius, color, alpha, sixSpikes) {
+    const spikeLen = radius * 7.5;
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 3.4);
+    glow.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+    glow.addColorStop(0.35, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${(alpha * 0.45).toFixed(3)})`);
+    glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 3.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${(alpha * 0.55).toFixed(3)})`;
+    ctx.lineWidth = Math.max(0.6, radius * 0.35);
+    ctx.beginPath();
+    ctx.moveTo(x - spikeLen, y);
+    ctx.lineTo(x + spikeLen, y);
+    ctx.moveTo(x, y - spikeLen);
+    ctx.lineTo(x, y + spikeLen);
+
+    if (sixSpikes) {
+      const diag = spikeLen * 0.68;
+      ctx.moveTo(x - diag, y - diag * 0.58);
+      ctx.lineTo(x + diag, y + diag * 0.58);
+      ctx.moveTo(x - diag, y + diag * 0.58);
+      ctx.lineTo(x + diag, y - diag * 0.58);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.85, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   const shootingStars = [];
 
   function spawnShootingStar() {
-    const bright = Math.random() > 0.58;
+    const bright = Math.random() > 0.55;
     const startX = Math.random() * w;
     const startY = Math.random() * h * 0.65;
     const angle = Math.PI * (0.15 + Math.random() * 0.25);
@@ -244,7 +286,7 @@
       y: startY,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      len: bright ? 110 + Math.random() * 65 : 55 + Math.random() * 40,
+      len: bright ? 120 + Math.random() * 70 : 60 + Math.random() * 40,
       width: bright ? 2.1 : 1.1,
       alpha: 1,
       decay: bright ? 0.011 : 0.015,
@@ -268,7 +310,7 @@
       grad.addColorStop(
         0.4,
         st.purple
-          ? `rgba(216, 180, 254, ${st.alpha * 0.5})`
+          ? `rgba(216, 180, 254, ${st.alpha * 0.55})`
           : `rgba(233, 213, 255, ${st.alpha * 0.45})`
       );
       grad.addColorStop(1, "rgba(0, 0, 0, 0)");
@@ -291,6 +333,46 @@
     }
   }
 
+  const backdropClouds = [
+    { nx: 0.22, ny: 0.28, r: 0.55, c1: "rgba(107, 33, 168, 0.26)", c2: "rgba(49, 16, 82, 0.12)" },
+    { nx: 0.78, ny: 0.35, r: 0.52, c1: "rgba(67, 56, 202, 0.24)", c2: "rgba(30, 27, 75, 0.12)" },
+    { nx: 0.48, ny: 0.55, r: 0.65, c1: "rgba(162, 28, 175, 0.22)", c2: "rgba(88, 28, 135, 0.12)" },
+    { nx: 0.25, ny: 0.76, r: 0.5, c1: "rgba(88, 28, 135, 0.25)", c2: "rgba(30, 10, 60, 0.12)" },
+    { nx: 0.76, ny: 0.74, r: 0.54, c1: "rgba(126, 34, 206, 0.24)", c2: "rgba(46, 16, 101, 0.12)" },
+  ];
+
+  function drawNebulaBackdrop(intensity, camRoll, time) {
+    ctx.fillStyle = "#04010c";
+    ctx.fillRect(0, 0, w, h);
+
+    if (intensity <= 0.005) return;
+
+    const maxDim = Math.max(w, h);
+    ctx.save();
+    ctx.globalAlpha = intensity;
+
+    for (let i = 0; i < backdropClouds.length; i++) {
+      const c = backdropClouds[i];
+      const driftX = Math.sin(time * 0.00018 + i) * 35;
+      const driftY = Math.cos(time * 0.00015 + i * 1.4) * 28;
+      const cx = c.nx * w + driftX + Math.sin(camRoll) * 40;
+      const cy = c.ny * h + driftY;
+      const rad = c.r * maxDim;
+
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      grad.addColorStop(0, c.c1);
+      grad.addColorStop(0.55, c.c2);
+      grad.addColorStop(1, "rgba(4, 1, 12, 0)");
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
   const cosmicObjects = [];
   const SECTORS = [
     { sx: -1, sy: -1 },
@@ -301,19 +383,19 @@
 
   function findBalancedPosition(sectorIdx, z, camX, camY, ignoreObj) {
     const sector = SECTORS[sectorIdx % 4];
-    let bestX = camX + sector.sx * (280 + Math.random() * 950);
-    let bestY = camY + sector.sy * (220 + Math.random() * 750);
+    let bestX = camX + sector.sx * (260 + Math.random() * 980);
+    let bestY = camY + sector.sy * (200 + Math.random() * 780);
 
-    for (let attempt = 0; attempt < 12; attempt++) {
-      const candX = camX + sector.sx * (240 + Math.random() * 1050);
-      const candY = camY + sector.sy * (180 + Math.random() * 820);
+    for (let attempt = 0; attempt < 14; attempt++) {
+      const candX = camX + sector.sx * (220 + Math.random() * 1050);
+      const candY = camY + sector.sy * (170 + Math.random() * 820);
       let tooClose = false;
 
       for (let j = 0; j < cosmicObjects.length; j++) {
         const other = cosmicObjects[j];
         if (other === ignoreObj) continue;
-        const dist = Math.hypot(candX - other.wx, candY - other.wy, (z - other.wz) * 0.6);
-        if (dist < 520) {
+        const dist = Math.hypot(candX - other.wx, candY - other.wy, (z - other.wz) * 0.65);
+        if (dist < 540) {
           tooClose = true;
           break;
         }
@@ -330,31 +412,31 @@
   function createGalaxy(sectorIdx, z, camX, camY) {
     const variant = Math.floor(Math.random() * 3);
     const pts = [];
-    const count = variant === 1 ? 150 : 210;
-    const arms = variant === 0 ? 2 : variant === 2 ? 4 : 1;
+    const count = variant === 1 ? 170 : 240;
+    const arms = variant === 0 ? 2 : variant === 2 ? 4 : 2;
     const hueMode = Math.floor(Math.random() * 3);
 
     for (let i = 0; i < count; i++) {
       const d = i / count;
       const arm = i % arms;
-      const spread = variant === 1 ? 0.18 : 0.42;
-      const angle = (arm * Math.PI * 2) / arms + d * 5.2 + (Math.random() - 0.5) * spread;
-      const r = 5 + d * 135;
+      const spread = variant === 1 ? 0.2 : 0.45;
+      const angle = (arm * Math.PI * 2) / arms + d * 5.4 + (Math.random() - 0.5) * spread;
+      const r = 4 + d * 145;
 
       let color;
       if (hueMode === 0) {
-        color = d < 0.3 ? "rgba(250, 232, 255, 0.92)" : "rgba(168, 85, 247, 0.78)";
+        color = d < 0.28 ? "rgba(255, 243, 214, 0.95)" : "rgba(192, 132, 252, 0.78)";
       } else if (hueMode === 1) {
-        color = d < 0.3 ? "rgba(255, 243, 196, 0.92)" : "rgba(192, 132, 252, 0.75)";
+        color = d < 0.28 ? "rgba(250, 232, 255, 0.95)" : "rgba(232, 121, 249, 0.75)";
       } else {
-        color = d < 0.3 ? "rgba(224, 242, 254, 0.92)" : "rgba(129, 140, 248, 0.78)";
+        color = d < 0.28 ? "rgba(254, 249, 195, 0.95)" : "rgba(129, 140, 248, 0.78)";
       }
 
       pts.push({
         x: Math.cos(angle) * r,
         y: Math.sin(angle) * r,
         color,
-        size: 1.3 + Math.random() * 1.5,
+        size: 1.2 + Math.random() * 1.4,
       });
     }
 
@@ -365,8 +447,8 @@
       wx: pos.wx,
       wy: pos.wy,
       wz: z,
-      tilt: (Math.random() - 0.5) * 1.6,
-      flatness: variant === 1 ? 0.22 : 0.52,
+      tilt: (Math.random() - 0.5) * 1.5,
+      flatness: variant === 1 ? 0.24 : 0.46,
       rot: Math.random() * Math.PI * 2,
       rotSpd: (Math.random() < 0.5 ? 1 : -1) * (0.004 + Math.random() * 0.006),
       pts,
@@ -378,43 +460,44 @@
       {
         kind: "ringed",
         c1: "#f3e8ff",
-        c2: "#9333ea",
-        c3: "#1e0936",
-        ring1: "rgba(233, 213, 255, 0.55)",
-        ring2: "rgba(168, 85, 247, 0.35)",
+        c2: "#7e22ce",
+        c3: "#140726",
+        ring1: "rgba(233, 213, 255, 0.6)",
+        ring2: "rgba(168, 85, 247, 0.38)",
+        hasMoon: true,
+      },
+      {
+        kind: "ringed",
+        c1: "#e9d5ff",
+        c2: "#6b21a8",
+        c3: "#0f051d",
+        ring1: "rgba(243, 232, 255, 0.55)",
+        ring2: "rgba(192, 132, 252, 0.35)",
         hasMoon: true,
       },
       {
         kind: "banded",
         c1: "#e0e7ff",
-        c2: "#6366f1",
-        c3: "#131138",
+        c2: "#4f46e5",
+        c3: "#0f0e29",
         bandColor: "rgba(255, 255, 255, 0.14)",
         hasMoon: true,
       },
       {
         kind: "mystic",
         c1: "#fae8ff",
-        c2: "#c026d3",
-        c3: "#2a0838",
-        ring1: "rgba(245, 208, 254, 0.45)",
-        ring2: "rgba(192, 132, 252, 0.28)",
+        c2: "#a21caf",
+        c3: "#1f0629",
+        ring1: "rgba(245, 208, 254, 0.5)",
+        ring2: "rgba(192, 132, 252, 0.3)",
         hasMoon: false,
-      },
-      {
-        kind: "banded",
-        c1: "#fef3c7",
-        c2: "#7c3aed",
-        c3: "#190b33",
-        bandColor: "rgba(233, 213, 255, 0.16)",
-        hasMoon: true,
       },
       {
         kind: "ice",
-        c1: "#ffffff",
-        c2: "#818cf8",
-        c3: "#0f172a",
-        hasMoon: false,
+        c1: "#f8fafc",
+        c2: "#6366f1",
+        c3: "#090d1f",
+        hasMoon: true,
       },
     ];
 
@@ -426,7 +509,7 @@
       wx: pos.wx,
       wy: pos.wy,
       wz: z,
-      radius: 32 + Math.random() * 38,
+      radius: 36 + Math.random() * 44,
       tilt: -0.45 + Math.random() * 0.9,
       moonAngle: Math.random() * Math.PI * 2,
       moonSpeed: 0.015 + Math.random() * 0.015,
@@ -442,17 +525,17 @@
       wx: pos.wx,
       wy: pos.wy,
       wz: z,
-      radius: 36 + Math.random() * 20,
-      tilt: (Math.random() - 0.5) * 0.85,
+      radius: 38 + Math.random() * 22,
+      tilt: (Math.random() - 0.5) * 0.75,
     };
   }
 
   function createNebula(sectorIdx, z, camX, camY) {
     const colors = [
-      "rgba(147, 51, 234, 0.2)",
-      "rgba(109, 40, 217, 0.18)",
-      "rgba(192, 132, 252, 0.15)",
-      "rgba(79, 70, 229, 0.16)",
+      "rgba(168, 85, 247, 0.24)",
+      "rgba(192, 38, 211, 0.2)",
+      "rgba(109, 40, 217, 0.22)",
+      "rgba(79, 70, 229, 0.2)",
     ];
     const pos = findBalancedPosition(sectorIdx, z, camX, camY, null);
     return {
@@ -461,15 +544,15 @@
       wx: pos.wx,
       wy: pos.wy,
       wz: z,
-      radius: 320 + Math.random() * 220,
+      radius: 340 + Math.random() * 240,
       color: colors[Math.floor(Math.random() * colors.length)],
     };
   }
 
   function initCosmicField(camX, camY) {
     cosmicObjects.length = 0;
-    for (let i = 0; i < 28; i++) {
-      const z = 420 + i * 145;
+    for (let i = 0; i < 32; i++) {
+      const z = 380 + i * 130;
       const sectorIdx = i % 4;
       const mod = i % 5;
       if (mod === 0) cosmicObjects.push(createNebula(sectorIdx, z, camX, camY));
@@ -539,13 +622,13 @@
       const cosG = Math.cos(obj.rot);
       const sinG = Math.sin(obj.rot);
 
-      const core = ctx.createRadialGradient(0, 0, 0, 0, 0, 28 * scale);
-      core.addColorStop(0, "rgba(250, 232, 255, 0.95)");
-      core.addColorStop(0.5, "rgba(168, 85, 247, 0.35)");
+      const core = ctx.createRadialGradient(0, 0, 0, 0, 0, 34 * scale);
+      core.addColorStop(0, "rgba(255, 248, 231, 0.96)");
+      core.addColorStop(0.4, "rgba(216, 180, 254, 0.45)");
       core.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = core;
       ctx.beginPath();
-      ctx.arc(0, 0, 28 * scale, 0, Math.PI * 2);
+      ctx.arc(0, 0, 34 * scale, 0, Math.PI * 2);
       ctx.fill();
 
       for (let i = 0; i < obj.pts.length; i++) {
@@ -562,14 +645,14 @@
       ctx.rotate(obj.tilt);
 
       const atmo = ctx.createRadialGradient(0, 0, r * 0.85, 0, 0, r * 1.45);
-      atmo.addColorStop(0, "rgba(192, 132, 252, 0.32)");
+      atmo.addColorStop(0, "rgba(192, 132, 252, 0.34)");
       atmo.addColorStop(1, "rgba(192, 132, 252, 0)");
       ctx.fillStyle = atmo;
       ctx.beginPath();
       ctx.arc(0, 0, r * 1.45, 0, Math.PI * 2);
       ctx.fill();
 
-      const body = ctx.createRadialGradient(-r * 0.32, -r * 0.32, r * 0.08, 0, 0, r);
+      const body = ctx.createRadialGradient(-r * 0.35, -r * 0.35, r * 0.08, 0, 0, r);
       body.addColorStop(0, obj.style.c1);
       body.addColorStop(0.48, obj.style.c2);
       body.addColorStop(1, obj.style.c3);
@@ -591,44 +674,56 @@
 
       if (obj.style.kind === "ringed" || obj.style.kind === "mystic") {
         ctx.strokeStyle = obj.style.ring1;
-        ctx.lineWidth = Math.max(1.2, 4.2 * scale);
+        ctx.lineWidth = Math.max(1.2, 4.4 * scale);
         ctx.beginPath();
-        ctx.ellipse(0, 0, r * 2.2, r * 0.48, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, r * 2.25, r * 0.48, 0, 0, Math.PI * 2);
         ctx.stroke();
 
         ctx.strokeStyle = obj.style.ring2;
-        ctx.lineWidth = Math.max(0.8, 2 * scale);
+        ctx.lineWidth = Math.max(0.8, 2.2 * scale);
         ctx.beginPath();
-        ctx.ellipse(0, 0, r * 1.75, r * 0.36, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, r * 1.8, r * 0.36, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
 
       if (obj.style.hasMoon) {
         obj.moonAngle += obj.moonSpeed;
-        const mx = Math.cos(obj.moonAngle) * r * 1.65;
+        const mx = Math.cos(obj.moonAngle) * r * 1.68;
         const my = Math.sin(obj.moonAngle) * r * 0.42;
         ctx.fillStyle = "#f3e8ff";
         ctx.beginPath();
-        ctx.arc(mx, my, Math.max(1.4, r * 0.14), 0, Math.PI * 2);
+        ctx.arc(mx, my, Math.max(1.6, r * 0.14), 0, Math.PI * 2);
         ctx.fill();
       }
     } else if (obj.type === "blackhole") {
       const r = obj.radius * scale;
       ctx.rotate(obj.tilt);
 
-      const lens = ctx.createRadialGradient(0, 0, r * 0.88, 0, 0, r * 2.8);
-      lens.addColorStop(0, "rgba(192, 132, 252, 0.85)");
-      lens.addColorStop(0.35, "rgba(126, 34, 206, 0.38)");
+      const lens = ctx.createRadialGradient(0, 0, r * 0.85, 0, 0, r * 3.0);
+      lens.addColorStop(0, "rgba(233, 213, 255, 0.9)");
+      lens.addColorStop(0.32, "rgba(147, 51, 234, 0.42)");
       lens.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = lens;
       ctx.beginPath();
-      ctx.arc(0, 0, r * 2.8, 0, Math.PI * 2);
+      ctx.arc(0, 0, r * 3.0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = "rgba(245, 208, 254, 0.82)";
-      ctx.lineWidth = Math.max(1.5, 4 * scale);
+      ctx.strokeStyle = "rgba(250, 232, 255, 0.78)";
+      ctx.lineWidth = Math.max(1.4, 3.6 * scale);
       ctx.beginPath();
-      ctx.ellipse(0, 0, r * 2.45, r * 0.4, 0, 0, Math.PI * 2);
+      ctx.arc(0, 0, r * 1.55, Math.PI * 1.05, Math.PI * 1.95);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(245, 208, 254, 0.88)";
+      ctx.lineWidth = Math.max(1.6, 4.4 * scale);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 2.65, r * 0.42, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(192, 132, 252, 0.5)";
+      ctx.lineWidth = Math.max(1, 2.2 * scale);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r * 3.1, r * 0.55, 0, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = "#010003";
@@ -636,7 +731,7 @@
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle = "rgba(233, 213, 255, 0.65)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
       ctx.lineWidth = Math.max(1, 1.8 * scale);
       ctx.beginPath();
       ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -740,7 +835,7 @@
       cosmosFade = Math.min(0.42, cosmosFade + 0.0028);
       travelSpeed = Math.min(1.2, travelSpeed + 0.006);
     } else if (isJourney) {
-      const targetFade = isFinalText ? 0.38 : 0.96;
+      const targetFade = isFinalText ? 0.42 : 1.0;
       cosmosFade += (targetFade - cosmosFade) * 0.014;
       const targetSpeed = isFinalText ? 4.2 : 7.8;
       travelSpeed += (targetSpeed - travelSpeed) * 0.0065;
@@ -756,8 +851,7 @@
       camRoll = Math.sin(journeyTime * 0.07) * 0.26 * steerBlend;
     }
 
-    ctx.fillStyle = "rgba(4, 1, 14, 0.82)";
-    ctx.fillRect(0, 0, w, h);
+    drawNebulaBackdrop(cosmosFade, camRoll, now);
 
     if (cosmosFade > 0.005 && cosmicObjects.length > 0) {
       cosmicObjects.sort((a, b) => b.wz - a.wz);
@@ -771,7 +865,7 @@
       }
     }
 
-    updateAndDrawShootingStars(isJourney ? (isFinalText ? 0.014 : 0.025) : 0.014);
+    updateAndDrawShootingStars(isJourney ? (isFinalText ? 0.016 : 0.028) : 0.014);
 
     const cosY = Math.cos(camYaw);
     const sinY = Math.sin(camYaw);
@@ -791,8 +885,8 @@
         s.wz -= travelSpeed * (0.75 + (i % 5) * 0.14);
         if (s.wz <= 25) {
           s.wz = 3500;
-          s.wx = camX + (Math.random() - 0.5) * 6200;
-          s.wy = camY + (Math.random() - 0.5) * 4800;
+          s.wx = camX + (Math.random() - 0.5) * 6400;
+          s.wy = camY + (Math.random() - 0.5) * 5000;
         }
       } else if (!s.inText) {
         s.wx += s.driftVx;
@@ -852,13 +946,17 @@
 
       const baseRadius = s.inText
         ? Math.max(0.95, s.size * 0.78)
-        : Math.min(3.0, Math.max(0.7, s.size * scaleNow * 0.72));
+        : Math.min(3.2, Math.max(0.7, s.size * scaleNow * 0.75));
       const radius = baseRadius * boost;
 
-      ctx.fillStyle = `rgba(${s.color[0]}, ${s.color[1]}, ${s.color[2]}, ${finalAlpha.toFixed(3)})`;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
-      ctx.fill();
+      if (s.hasSpikes && !s.inText && scaleNow > 0.35) {
+        drawDiffractionStar(s.x, s.y, radius * 1.15, s.color, finalAlpha, s.spikeSix);
+      } else {
+        ctx.fillStyle = `rgba(${s.color[0]}, ${s.color[1]}, ${s.color[2]}, ${finalAlpha.toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     updateAndDrawCrispText(now);
