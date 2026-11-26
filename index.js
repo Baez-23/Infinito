@@ -73,6 +73,7 @@
     flash: 0,
     createdAt: 0,
     active: false,
+    isHeroFinal: false,
   };
 
   function sampleTextPoints(lines, fontSize, weight, fontFamily, step) {
@@ -113,7 +114,7 @@
     return points;
   }
 
-  function setMorphText(lines, fontSize, weight, fontFamily, step, now) {
+  function setMorphText(lines, fontSize, weight, fontFamily, step, now, isHeroFinal = false) {
     const points = sampleTextPoints(lines, fontSize, weight, fontFamily, step);
     const usable = Math.min(points.length, 920);
 
@@ -137,6 +138,7 @@
     activeTextState.opacity = 0;
     activeTextState.flash = 0;
     activeTextState.createdAt = now;
+    activeTextState.isHeroFinal = isHeroFinal;
   }
 
   function releaseText(scatterSpeed, camX, camY, camYaw, camPitch, camRoll) {
@@ -195,7 +197,7 @@
         activeTextState.opacity = Math.min(1, activeTextState.opacity + 0.015);
       }
     } else {
-      activeTextState.opacity = Math.max(0, activeTextState.opacity - 0.025);
+      activeTextState.opacity = Math.max(0, activeTextState.opacity - 0.024);
       activeTextState.flash *= 0.86;
     }
 
@@ -223,8 +225,11 @@
     }
 
     if (activeTextState.opacity > 0.004) {
-      ctx.shadowColor = `rgba(192, 132, 252, ${(0.62 * activeTextState.opacity).toFixed(3)})`;
-      ctx.shadowBlur = 16;
+      const heroPulse = activeTextState.isHeroFinal
+        ? 0.72 + 0.22 * Math.sin(now * 0.0022)
+        : 0.62;
+      ctx.shadowColor = `rgba(192, 132, 252, ${(heroPulse * activeTextState.opacity).toFixed(3)})`;
+      ctx.shadowBlur = activeTextState.isHeroFinal ? 24 : 16;
       ctx.fillStyle = `rgba(255, 255, 255, ${activeTextState.opacity.toFixed(3)})`;
 
       activeTextState.lines.forEach((line, idx) => {
@@ -761,6 +766,8 @@
     const phraseFont = isMobile ? Math.max(29, w * 0.082) : Math.max(46, w * 0.042);
     const step = isMobile ? 4 : 5;
     const countFont = isMobile ? Math.min(w * 0.34, 155) : Math.min(h * 0.28, 190);
+    const finalPhraseFont = isMobile ? Math.max(28, w * 0.078) : Math.max(44, w * 0.04);
+    const heroFont = isMobile ? Math.max(33, w * 0.092) : Math.max(54, w * 0.05);
 
     if (stage === 1) {
       const lines = isMobile
@@ -787,23 +794,31 @@
     } else if (stage === 10) {
       releaseText(0.4, camX, camY, camYaw, camPitch, camRoll);
     } else if (stage === 11) {
-      const finalFont = isMobile ? Math.max(25, w * 0.068) : Math.max(38, w * 0.036);
-      const finalLines = isMobile
-        ? [
-            "Te amo más allá",
-            "de tu vida...",
-            "De la mía... y del tiempo...",
-            "Porque poca es la",
-            "infinita eternidad",
-            "para adorarte....",
-          ]
-        : [
-            "Te amo más allá de tu vida...",
-            "De la mía... y del tiempo...",
-            "Porque poca es la infinita eternidad",
-            "para adorarte....",
-          ];
-      setMorphText(finalLines, finalFont, 600, CURSIVE_FONT, step, now);
+      const lines = isMobile
+        ? ["Te amo más allá", "de tu vida..."]
+        : ["Te amo más allá de tu vida..."];
+      setMorphText(lines, finalPhraseFont, 600, CURSIVE_FONT, step, now);
+    } else if (stage === 12) {
+      releaseText(0.95, camX, camY, camYaw, camPitch, camRoll);
+    } else if (stage === 13) {
+      const lines = isMobile
+        ? ["De la mía...", "y del tiempo..."]
+        : ["De la mía... y del tiempo..."];
+      setMorphText(lines, finalPhraseFont, 600, CURSIVE_FONT, step, now);
+    } else if (stage === 14) {
+      releaseText(0.95, camX, camY, camYaw, camPitch, camRoll);
+    } else if (stage === 15) {
+      const lines = isMobile
+        ? ["Porque poca es la", "infinita eternidad", "para adorarte...."]
+        : ["Porque poca es la infinita eternidad", "para adorarte...."];
+      setMorphText(lines, finalPhraseFont * 0.96, 600, CURSIVE_FONT, step, now);
+    } else if (stage === 16) {
+      releaseText(1.05, camX, camY, camYaw, camPitch, camRoll);
+    } else if (stage === 17) {
+      const lines = isMobile
+        ? ["MI CHAPARRITO", "<3"]
+        : ["MI CHAPARRITO <3"];
+      setMorphText(lines, heroFont, 700, CURSIVE_FONT, step, now, true);
     }
   }
 
@@ -826,19 +841,29 @@
     else if (elapsed < 35.5) triggerStage(8, now);
     else if (elapsed < 39.5) triggerStage(9, now);
     else if (elapsed < 129.5) triggerStage(10, now);
-    else triggerStage(11, now);
+    else if (elapsed < 137.0) triggerStage(11, now);
+    else if (elapsed < 140.0) triggerStage(12, now);
+    else if (elapsed < 147.5) triggerStage(13, now);
+    else if (elapsed < 150.5) triggerStage(14, now);
+    else if (elapsed < 159.0) triggerStage(15, now);
+    else if (elapsed < 162.5) triggerStage(16, now);
+    else triggerStage(17, now);
 
     const isJourney = currentStage >= 10;
-    const isFinalText = currentStage === 11;
+    const isReadingFinal =
+      currentStage === 11 ||
+      currentStage === 13 ||
+      currentStage === 15 ||
+      currentStage === 17;
 
     if (currentStage === 9) {
       cosmosFade = Math.min(0.42, cosmosFade + 0.0028);
       travelSpeed = Math.min(1.2, travelSpeed + 0.006);
     } else if (isJourney) {
-      const targetFade = isFinalText ? 0.42 : 1.0;
-      cosmosFade += (targetFade - cosmosFade) * 0.014;
-      const targetSpeed = isFinalText ? 4.2 : 7.8;
-      travelSpeed += (targetSpeed - travelSpeed) * 0.0065;
+      const targetFade = isReadingFinal ? 0.45 : 1.0;
+      cosmosFade += (targetFade - cosmosFade) * 0.016;
+      const targetSpeed = isReadingFinal ? 4.4 : 7.8;
+      travelSpeed += (targetSpeed - travelSpeed) * 0.008;
     }
 
     if (travelSpeed > 0.01) {
@@ -865,7 +890,7 @@
       }
     }
 
-    updateAndDrawShootingStars(isJourney ? (isFinalText ? 0.016 : 0.028) : 0.014);
+    updateAndDrawShootingStars(isJourney ? (isReadingFinal ? 0.016 : 0.028) : 0.014);
 
     const cosY = Math.cos(camYaw);
     const sinY = Math.sin(camYaw);
@@ -941,7 +966,7 @@
 
       const baseAlpha = s.inText
         ? 0.92
-        : s.alpha * distanceFade * (isFinalText ? 0.55 : 0.96);
+        : s.alpha * distanceFade * (isReadingFinal ? 0.58 : 0.96);
       const finalAlpha = Math.min(1, baseAlpha * twinkle * condenseFade * boost);
 
       const baseRadius = s.inText
