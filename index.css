@@ -23,7 +23,7 @@ html, body {
   position: relative;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle at 50% 50%, #090314 0%, #020106 80%);
+  background: radial-gradient(circle at 50% 50%, #090314 0%, #020106 85%);
 }
 
 canvas {
@@ -42,7 +42,7 @@ canvas {
   justify-content: center;
   align-items: center;
   background: #020106;
-  transition: opacity 1.4s ease, visibility 1.4s ease;
+  transition: opacity 1.8s ease, visibility 1.8s ease;
 }
 
 .start-overlay.hidden {
@@ -58,23 +58,24 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   cursor: pointer;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 .star-pulse {
-  font-size: 2.2rem;
+  font-size: 2.3rem;
   color: #ffffff;
   text-shadow: 0 0 18px #ffffff, 0 0 34px var(--purple-glow);
-  animation: pulseStar 2.6s ease-in-out infinite;
+  animation: pulseStar 2.8s ease-in-out infinite;
 }
 
 .start-label {
-  font-size: 0.95rem;
-  letter-spacing: 2px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: rgba(233, 213, 255, 0.78);
+  color: rgba(233, 213, 255, 0.82);
   text-shadow: 0 0 12px var(--purple-glow);
 }
 
