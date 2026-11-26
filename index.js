@@ -97,7 +97,7 @@
     return points;
   }
 
-  function setMorphText(lines, fontSize, weight, step, now, keepProgress) {
+  function setMorphText(lines, fontSize, weight, step, now) {
     const points = sampleTextPoints(lines, fontSize, weight, step);
     const usable = Math.min(points.length, stars.length - 300);
 
@@ -117,11 +117,9 @@
     activeTextState.fontSize = fontSize;
     activeTextState.weight = weight;
     activeTextState.active = true;
-    if (!keepProgress) {
-      activeTextState.opacity = 0;
-      activeTextState.flash = 0;
-      activeTextState.createdAt = now;
-    }
+    activeTextState.opacity = 0;
+    activeTextState.flash = 0;
+    activeTextState.createdAt = now;
   }
 
   function releaseText(scatterSpeed) {
@@ -129,7 +127,7 @@
     for (let i = 0; i < stars.length; i++) {
       if (stars[i].inText) {
         const angle = Math.random() * Math.PI * 2;
-        const spd = scatterSpeed * (0.35 + Math.random() * 0.85);
+        const spd = scatterSpeed * (0.4 + Math.random() * 0.9);
         stars[i].vx = Math.cos(angle) * spd;
         stars[i].vy = Math.sin(angle) * spd;
       }
@@ -143,19 +141,19 @@
     if (activeTextState.active) {
       const age = (now - activeTextState.createdAt) / 1000;
 
-      if (age > 1.35 && age < 2.9) {
-        const progress = (age - 1.35) / 1.55;
+      if (age > 1.4 && age < 2.9) {
+        const progress = (age - 1.4) / 1.5;
         activeTextState.flash = Math.sin(progress * Math.PI);
       } else {
         activeTextState.flash *= 0.9;
       }
 
-      if (age > 1.65) {
-        activeTextState.opacity = Math.min(1, activeTextState.opacity + 0.014);
+      if (age > 1.7) {
+        activeTextState.opacity = Math.min(1, activeTextState.opacity + 0.015);
       }
     } else {
-      activeTextState.opacity = Math.max(0, activeTextState.opacity - 0.022);
-      activeTextState.flash *= 0.88;
+      activeTextState.opacity = Math.max(0, activeTextState.opacity - 0.025);
+      activeTextState.flash *= 0.86;
     }
 
     if (activeTextState.opacity <= 0.004 && activeTextState.flash <= 0.004) return;
@@ -393,8 +391,8 @@
 
   function initCosmicField(camX, camY) {
     cosmicObjects.length = 0;
-    for (let i = 0; i < 32; i++) {
-      const z = 260 + i * 135;
+    for (let i = 0; i < 34; i++) {
+      const z = 180 + i * 130;
       const mod = i % 5;
       if (mod === 0) cosmicObjects.push(createNebula(z, camX, camY));
       else if (mod === 1 || mod === 3) cosmicObjects.push(createPlanet(z, camX, camY));
@@ -588,33 +586,32 @@
       const lines = isMobile
         ? ["¿Quieres saber", "cuánto he de amarte?..."]
         : ["¿Quieres saber cuánto he de amarte?..."];
-      setMorphText(lines, phraseFont, 500, step, now, false);
+      setMorphText(lines, phraseFont, 500, step, now);
     } else if (stage === 2) {
-      const lines = isMobile
-        ? ["¿Quieres saber", "cuánto he de amarte?...", "", "Solo espera"]
-        : ["¿Quieres saber cuánto he de amarte?...", "", "Solo espera"];
-      setMorphText(lines, phraseFont, 500, step, now, true);
+      releaseText(1.15);
     } else if (stage === 3) {
-      releaseText(1.1);
+      setMorphText(["...Solo espera"], phraseFont, 500, step, now);
     } else if (stage === 4) {
-      setMorphText(["3"], countFont, 600, step, now, false);
+      releaseText(1.15);
     } else if (stage === 5) {
-      releaseText(1.0);
+      setMorphText(["3"], countFont, 600, step, now);
     } else if (stage === 6) {
-      setMorphText(["2"], countFont, 600, step, now, false);
-    } else if (stage === 7) {
       releaseText(1.0);
+    } else if (stage === 7) {
+      setMorphText(["2"], countFont, 600, step, now);
     } else if (stage === 8) {
-      setMorphText(["1"], countFont, 600, step, now, false);
-      initCosmicField(0, 0);
+      releaseText(1.0);
     } else if (stage === 9) {
+      setMorphText(["1"], countFont, 600, step, now);
+      initCosmicField(0, 0);
+    } else if (stage === 10) {
       releaseText(1.2);
       const fov = 440;
       for (let i = 0; i < stars.length; i++) {
-        const z = i < 650 ? 340 + Math.random() * 1400 : 120 + Math.random() * 3200;
+        const z = i < 700 ? 280 + Math.random() * 1300 : 120 + Math.random() * 3200;
         const scale = fov / z;
         stars[i].wz = z;
-        if (i < 650) {
+        if (i < 700) {
           stars[i].wx = (stars[i].x - w / 2) / scale;
           stars[i].wy = (stars[i].y - h / 2) / scale;
         } else {
@@ -622,7 +619,7 @@
           stars[i].wy = (Math.random() - 0.5) * 4200;
         }
       }
-    } else if (stage === 10) {
+    } else if (stage === 11) {
       const finalFont = isMobile ? Math.max(20, w * 0.052) : Math.max(30, w * 0.028);
       const finalLines = isMobile
         ? [
@@ -639,7 +636,7 @@
             "Porque poca es la infinita eternidad",
             "para adorarte....",
           ];
-      setMorphText(finalLines, finalFont, 500, step, now, false);
+      setMorphText(finalLines, finalFont, 500, step, now);
     }
   }
 
@@ -652,25 +649,26 @@
     const elapsed = (now - startTime) / 1000;
 
     if (elapsed < 4.5) triggerStage(0, now);
-    else if (elapsed < 11.2) triggerStage(1, now);
-    else if (elapsed < 18.5) triggerStage(2, now);
-    else if (elapsed < 21.5) triggerStage(3, now);
-    else if (elapsed < 25.5) triggerStage(4, now);
+    else if (elapsed < 11.5) triggerStage(1, now);
+    else if (elapsed < 14.5) triggerStage(2, now);
+    else if (elapsed < 20.5) triggerStage(3, now);
+    else if (elapsed < 23.5) triggerStage(4, now);
     else if (elapsed < 27.5) triggerStage(5, now);
-    else if (elapsed < 31.5) triggerStage(6, now);
+    else if (elapsed < 29.5) triggerStage(6, now);
     else if (elapsed < 33.5) triggerStage(7, now);
-    else if (elapsed < 37.5) triggerStage(8, now);
-    else if (elapsed < 127.5) triggerStage(9, now);
-    else triggerStage(10, now);
+    else if (elapsed < 35.5) triggerStage(8, now);
+    else if (elapsed < 39.5) triggerStage(9, now);
+    else if (elapsed < 129.5) triggerStage(10, now);
+    else triggerStage(11, now);
 
-    const isJourney = currentStage >= 9;
-    const isFinalText = currentStage === 10;
+    const isJourney = currentStage >= 10;
+    const isFinalText = currentStage === 11;
 
-    if (currentStage === 8) {
-      cosmosFade = Math.min(0.28, cosmosFade + 0.002);
+    if (currentStage === 9) {
+      cosmosFade = Math.min(0.32, cosmosFade + 0.0025);
     } else if (isJourney) {
       const targetFade = isFinalText ? 0.35 : 0.96;
-      cosmosFade += (targetFade - cosmosFade) * 0.015;
+      cosmosFade += (targetFade - cosmosFade) * 0.018;
     }
 
     ctx.fillStyle = isJourney
@@ -681,7 +679,7 @@
     ctx.fillRect(0, 0, w, h);
 
     if (cosmosFade > 0.005 && cosmicObjects.length > 0) {
-      const journeyTime = Math.max(0, elapsed - 37.5);
+      const journeyTime = Math.max(0, elapsed - 39.5);
       const camX = isJourney
         ? Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260
         : 0;
@@ -744,9 +742,9 @@
         ctx.fill();
       }
     } else {
-      const journeyTime = elapsed - 37.5;
+      const journeyTime = elapsed - 39.5;
       const targetSpeed = isFinalText ? 4.2 : 8.5;
-      travelSpeed += (targetSpeed - travelSpeed) * 0.01;
+      travelSpeed += (targetSpeed - travelSpeed) * 0.014;
 
       const camX = Math.sin(journeyTime * 0.14) * 520 + Math.cos(journeyTime * 0.07) * 260;
       const camY = Math.cos(journeyTime * 0.11) * 420 + Math.sin(journeyTime * 0.09) * 210;
