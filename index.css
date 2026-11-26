@@ -1,0 +1,90 @@
+:root {
+  --bg-void: #020108;
+  --purple-glow: rgba(168, 85, 247, 0.55);
+  --violet-soft: #e9d5ff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-void);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cosmos {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 50% 50%, #090314 0%, #020106 80%);
+}
+
+canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.start-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #020106;
+  transition: opacity 1.4s ease, visibility 1.4s ease;
+}
+
+.start-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.start-btn {
+  background: none;
+  border: none;
+  color: var(--violet-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.star-pulse {
+  font-size: 2.2rem;
+  color: #ffffff;
+  text-shadow: 0 0 18px #ffffff, 0 0 34px var(--purple-glow);
+  animation: pulseStar 2.6s ease-in-out infinite;
+}
+
+.start-label {
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(233, 213, 255, 0.78);
+  text-shadow: 0 0 12px var(--purple-glow);
+}
+
+@keyframes pulseStar {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 1;
+  }
+}
