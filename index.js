@@ -879,4 +879,16 @@
             }
           }, 150);
         })
-        .catch(() =>
+        .catch(() => {});
+    }
+  }
+
+  startBtn.addEventListener("click", () => {
+    if (started) return;
+    started = true;
+    startOverlay.classList.add("hidden");
+    fadeInAudio(bgMusic);
+    startTime = performance.now();
+    requestAnimationFrame(render);
+  });
+})();
